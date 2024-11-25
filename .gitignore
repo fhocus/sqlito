@@ -1,0 +1,9 @@
+build
+.editorconfig
+.vscode
+CMakeCache.txt
+*.cmake
+CMakeFiles
+build.ninja
+.ninja_*
+*.a

@@ -1,0 +1,2 @@
+add_executable(generateDisk generateDisk.cpp)
+target_link_libraries(generateDisk PRIVATE sqlito)

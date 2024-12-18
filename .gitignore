@@ -7,3 +7,4 @@ CMakeFiles
 build.ninja
 .ninja_*
 *.a
+bin

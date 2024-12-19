@@ -15,10 +15,12 @@ set(EXP_DIR "${CMAKE_SOURCE_DIR}/examples")
 
 include_directories("${INC_DIR}")
 set(SRC_FILES
-    "${SRC_DIR}/sqlito.cpp"
     "${SRC_DIR}/Disk.cpp"
     "${SRC_DIR}/DiskManager.cpp"
+    "${SRC_DIR}/Command.cpp"
+    "${SRC_DIR}/Parser.cpp"
     "${SRC_DIR}/utils/File.cpp"
+    "${SRC_DIR}/sqlito.cpp"
 )
 
 add_library(sqlito STATIC ${SRC_FILES})

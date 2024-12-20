@@ -46,6 +46,11 @@ namespace SQLito
     int _getBetweenContent(std::string &);
     int _getWhereContent(std::vector<std::vector<std::string>> &, std::string &);
     int _getWhereComponentContent(std::string &, std::string &, std::string &);
+    int _getSetContent(std::vector<std::vector<std::string>> &, std::string &);
+    int _getSetComponentContent(std::string &, std::string &, std::string &);
+    int _getSelectContent(std::vector<std::vector<std::string>> &);
+    int _getSelectComponentContent(std::string &, std::string &);
+    int _getJoinContent(std::queue<Command *> &, std::string &);
 
   public:
     Parser();

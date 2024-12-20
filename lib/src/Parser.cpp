@@ -23,6 +23,7 @@ namespace SQLito
   std::queue<Command *> Parser::parse(std::string command)
   {
     _command = command;
+    _commandStream.clear();
     _commandStream.str(_command);
 
     std::string token;
@@ -33,8 +34,12 @@ namespace SQLito
       return _createQuery();
     else if (token == "INSERT")
       return _insertQuery();
+    else if (token == "SELECT")
+      return _selectQuery();
     else if (token == "DELETE")
       return _deleteQuery();
+    else if (token == "UPDATE")
+      return _updateQuery();
 
     return std::queue<Command *>();
   }
@@ -154,8 +159,6 @@ namespace SQLito
     _getBetweenContent(fields);
     fieldsStream.str(fields);
 
-    std::cout << fields << std::endl;
-
     while (std::getline(fieldsStream, fieldName, ','))
     {
       fieldStream.clear();
@@ -168,7 +171,10 @@ namespace SQLito
     _getNextContent(token);
 
     if (token != "VALUES")
+    {
+      delete command;
       return commands;
+    }
 
     _getBetweenContent(values);
     valuesStream.str(values);
@@ -188,6 +194,77 @@ namespace SQLito
     command->setArguments(arguments);
 
     commands.push(command);
+
+    return commands;
+  }
+
+  std::queue<Command *> Parser::_selectQuery()
+  {
+    return _selectTableQuery();
+  }
+
+  std::queue<Command *> Parser::_selectTableQuery()
+  {
+    std::queue<Command *> commands;
+    std::string token, tableName;
+    std::vector<std::vector<std::string>> arguments;
+    Command *commandProjection, *command;
+
+    commandProjection = new Command();
+    commandProjection->setType(CommandType::PROJECTION);
+    _getSelectContent(arguments);
+
+    _getNextContent(token);
+    if (token != "FROM")
+    {
+      delete commandProjection;
+      return commands;
+    }
+
+    _getNextContent(tableName);
+
+    for (std::vector<std::string> &argument : arguments)
+    {
+      for (std::string &field : argument)
+      {
+        if (field == "_")
+          field = tableName;
+      }
+    }
+
+    commandProjection->setTable(tableName);
+    commandProjection->setArguments(arguments);
+    arguments.clear();
+
+    command = new Command();
+    command->setType(CommandType::SET);
+    command->setTable(tableName);
+    commands.push(command);
+
+    int rest;
+
+    do
+    {
+      rest = _getJoinContent(commands, tableName);
+
+      if (rest == 0)
+        break;
+      else if (rest == -1)
+        return std::queue<Command *>();
+    } while (rest == 1);
+
+    _getNextContent(token);
+    if (token == "WHERE")
+    {
+      command = new Command();
+      _getWhereContent(arguments, tableName);
+      command->setType(CommandType::SELECTION);
+      command->setTable(tableName);
+      command->setArguments(arguments);
+      commands.push(command);
+    }
+
+    commands.push(commandProjection);
 
     return commands;
   }
@@ -215,19 +292,16 @@ namespace SQLito
     command->setTable(tableName);
     commands.push(command);
 
-    std::cout << tableName << std::endl;
-
-    _getNextContent(token);
-
-    std::cout << token << std::endl;
-
-    if (token == "WHERE")
-    {
-      command = new Command();
-      command->setType(CommandType::SELECTION);
-      std::cout << tableName << std::endl;
-      _getWhereContent(arguments, tableName);
-    }
+    if (_getNextContent(token))
+      if (token == "WHERE")
+      {
+        command = new Command();
+        _getWhereContent(arguments, tableName);
+        command->setType(CommandType::SELECTION);
+        command->setTable(tableName);
+        command->setArguments(arguments);
+        commands.push(command);
+      }
 
     command = new Command();
     command->setType(CommandType::DELETE_TABLE);
@@ -237,15 +311,67 @@ namespace SQLito
     return commands;
   }
 
+  std::queue<Command *> Parser::_updateQuery()
+  {
+    return _updateTableQuery();
+  }
+
+  std::queue<Command *> Parser::_updateTableQuery()
+  {
+    std::queue<Command *> commands;
+    std::string token, tableName;
+    std::vector<std::vector<std::string>> arguments;
+
+    _getNextContent(tableName);
+    _getNextContent(token);
+
+    if (token != "SET")
+      return std::queue<Command *>();
+
+    Command *command = new Command();
+    command->setType(CommandType::SET);
+    command->setTable(tableName);
+    commands.push(command);
+
+    command = new Command();
+    _getSetContent(arguments, tableName);
+    command->setType(CommandType::MODIFY);
+    command->setTable(tableName);
+    command->setArguments(arguments);
+    commands.push(command);
+
+    arguments.clear();
+
+    _getNextContent(token);
+
+    if (token == "WHERE")
+    {
+      command = new Command();
+      _getWhereContent(arguments, tableName);
+      command->setType(CommandType::SELECTION);
+      command->setTable(tableName);
+      command->setArguments(arguments);
+      commands.push(command);
+    }
+
+    command = new Command();
+    command->setType(CommandType::UPDATE_TABLE);
+    command->setTable(tableName);
+    commands.push(command);
+
+    return commands;
+  }
+
   int Parser::_getNextContent(std::string &content)
   {
+    content.clear();
     _commandStream >> std::ws;
-
-    if (_commandStream.eof())
-      return 0;
 
     char c;
     _commandStream >> c;
+
+    if (_commandStream.fail())
+      return 0;
 
     if (c == '\'' || c == '"' || c == '`')
     {
@@ -264,11 +390,14 @@ namespace SQLito
     }
     else
     {
-      content = c;
+      _commandStream.unget();
       while (_commandStream.get(c))
       {
         if (c == ',' || c == '.' || c == ' ')
+        {
+          _commandStream.unget();
           break;
+        }
         content += c;
       }
       return 1;
@@ -277,6 +406,7 @@ namespace SQLito
 
   int Parser::_getNextContent(std::string &content, std::stringstream &stream)
   {
+    content.clear();
     stream >> std::ws;
 
     char c;
@@ -299,11 +429,14 @@ namespace SQLito
     }
     else
     {
-      content = c;
+      stream.unget();
       while (stream.get(c))
       {
         if (c == ',' || c == '.' || c == ' ')
+        {
+          stream.unget();
           break;
+        }
         content += c;
       }
       return 1;
@@ -347,27 +480,34 @@ namespace SQLito
 
     while (logicOperator == "AND" || logicOperator == "OR")
     {
+      std::string auxTableName = "";
       argument.push_back(logicOperator);
 
       _getWhereComponentContent(fieldTable, fieldName, mainTableName);
 
+      if (fieldTable != mainTableName)
+        auxTableName = fieldTable;
+
       argument.push_back(fieldTable);
       argument.push_back(fieldName);
-
-      std::cout << fieldTable << " " << fieldName << std::endl;
 
       _getNextContent(comparisonOperator);
       argument.push_back(comparisonOperator);
 
       _getWhereComponentContent(fieldTable, fieldValue, mainTableName);
-      argument.push_back(fieldTable);
+
+      if (fieldTable == mainTableName && !auxTableName.empty())
+        argument.push_back(auxTableName);
+      else
+        argument.push_back(fieldTable);
       argument.push_back(fieldValue);
-      std::cout << fieldTable << " " << fieldValue << std::endl;
 
       arguments.push_back(argument);
       argument.clear();
+      auxTableName.clear();
 
-      _getNextContent(logicOperator);
+      if (!_getNextContent(logicOperator))
+        break;
     }
 
     return 1;
@@ -379,34 +519,197 @@ namespace SQLito
     std::string token;
     int rest = _getNextContent(first);
 
-    if (rest == 1)
-    {
-      if (first.find('.') != std::string::npos)
-      {
-        tokenStream.str(first);
-        std::getline(tokenStream, token, '.');
-        std::stringstream tmpStream(token);
-        _getNextContent(first, tmpStream);
-        std::getline(tokenStream, token, '.');
-        tmpStream.clear();
-        tmpStream.str(token);
-        _getNextContent(second, tmpStream);
-      }
-      else
-      {
-        second = first;
-        first = defaultFirst;
-      }
-    }
-    else if (rest == 2)
-    {
-      char c;
-      _commandStream >> c;
-      if (c == '.')
-        _getNextContent(second);
-    }
+    char c;
+    _commandStream.get(c);
+    if (c == '.')
+      _getNextContent(second);
     else
+    {
+      _commandStream.unget();
+      second = first;
+      first = defaultFirst;
+    }
+
+    return 1;
+  }
+
+  int Parser::_getSetContent(std::vector<std::vector<std::string>> &arguments, std::string &mainTableName)
+  {
+    _commandStream >> std::ws;
+    std::string fieldTable, fieldName, comparisonOperator, fieldValue;
+    std::vector<std::string> argument;
+    char delimiter = ',';
+
+    while (delimiter == ',')
+    {
+      std::string auxTableName = "";
+      _getSetComponentContent(fieldTable, fieldName, mainTableName);
+
+      if (fieldTable != mainTableName)
+        auxTableName = fieldTable;
+
+      argument.push_back(fieldTable);
+      argument.push_back(fieldName);
+
+      _getNextContent(comparisonOperator);
+      argument.push_back(comparisonOperator);
+
+      _getSetComponentContent(fieldTable, fieldValue, mainTableName);
+
+      if (fieldTable == mainTableName && !auxTableName.empty())
+        argument.push_back(auxTableName);
+      else
+        argument.push_back(fieldTable);
+      argument.push_back(fieldValue);
+
+      arguments.push_back(argument);
+      argument.clear();
+
+      _commandStream >> delimiter;
+      if (_commandStream.fail())
+        break;
+    }
+
+    _commandStream.unget();
+
+    return 1;
+  }
+
+  int Parser::_getSetComponentContent(std::string &first, std::string &second, std::string &defaultFirst)
+  {
+    std::stringstream tokenStream;
+    std::string token;
+    int rest = _getNextContent(first);
+
+    char c;
+    _commandStream.get(c);
+    if (c == '.')
+      _getNextContent(second);
+    else
+    {
+      _commandStream.unget();
+      second = first;
+      first = defaultFirst;
+    }
+
+    return 1;
+  }
+
+  int Parser::_getSelectContent(std::vector<std::vector<std::string>> &arguments)
+  {
+    _commandStream >> std::ws;
+    std::string fieldTable, fieldName;
+    std::vector<std::string> argument;
+    char delimiter = ',';
+
+    while (delimiter == ',')
+    {
+      _getSelectComponentContent(fieldTable, fieldName);
+
+      argument.push_back(fieldTable);
+      argument.push_back(fieldName);
+
+      arguments.push_back(argument);
+      argument.clear();
+
+      _commandStream >> delimiter;
+
+      if (_commandStream.fail())
+        break;
+    }
+
+    _commandStream.unget();
+
+    return 1;
+  }
+
+  int Parser::_getSelectComponentContent(std::string &first, std::string &second)
+  {
+    std::stringstream tokenStream;
+    std::string token;
+    int rest = _getNextContent(first);
+
+    char c;
+    _commandStream.get(c);
+    if (c == '.')
+      _getNextContent(second);
+    else
+    {
+      _commandStream.unget();
+      second = first;
+      first = "_";
+    }
+
+    return 1;
+  }
+
+  int Parser::_getJoinContent(std::queue<Command *> &commands, std::string &mainTableName)
+  {
+    std::string token, tableName, fieldTable, fieldName, fieldValue;
+    std::vector<std::vector<std::string>> arguments;
+    std::vector<std::string> argument;
+    Command *commandSet, *commandJoin;
+    char c;
+
+    auto marker = _commandStream.tellg();
+    _getNextContent(token);
+
+    if (token != "LEFT" && token != "RIGHT" && token != "JOIN")
+    {
+      _commandStream.seekg(marker);
+      return 0;
+    }
+
+    marker = _commandStream.tellg();
+    if (token != "JOIN")
+    {
+      _getNextContent(token);
+      if (token != "JOIN")
+      {
+        _commandStream.seekg(marker);
+        return -1;
+      }
+    }
+
+    _getNextContent(tableName);
+    arguments.push_back({mainTableName});
+
+    commandSet = new Command();
+    commandSet->setType(CommandType::SET);
+    commandSet->setTable(tableName);
+    commands.push(commandSet);
+
+    _getNextContent(token);
+
+    if (token != "ON")
+    {
+      _commandStream.seekg(marker);
       return -1;
+    }
+
+    _getNextContent(fieldTable);
+    _commandStream.get(c);
+    _getNextContent(fieldName);
+
+    argument.push_back(fieldTable);
+    argument.push_back(fieldName);
+
+    _getNextContent(token);
+    argument.push_back(token);
+
+    _getNextContent(fieldTable);
+    _commandStream.get(c);
+    _getNextContent(fieldValue);
+    argument.push_back(fieldTable);
+    argument.push_back(fieldValue);
+
+    arguments.push_back(argument);
+
+    commandJoin = new Command();
+    commandJoin->setType(CommandType::JOIN);
+    commandJoin->setTable(tableName);
+    commandJoin->setArguments(arguments);
+    commands.push(commandJoin);
 
     return 1;
   }

@@ -9,3 +9,9 @@ target_link_libraries(insertQuery PRIVATE sqlito)
 
 add_executable(deleteQuery deleteQuery.cpp)
 target_link_libraries(deleteQuery PRIVATE sqlito)
+
+add_executable(updateQuery updateQuery.cpp)
+target_link_libraries(updateQuery PRIVATE sqlito)
+
+add_executable(selectQuery selectQuery.cpp)
+target_link_libraries(selectQuery PRIVATE sqlito)

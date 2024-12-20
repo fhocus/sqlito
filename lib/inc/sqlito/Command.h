@@ -11,6 +11,7 @@
 
 #pragma once
 
+#include <iostream>
 #include <string>
 #include <vector>
 
@@ -23,7 +24,11 @@ namespace SQLito
     CREATE_INDEX,
     INSERT_TABLE,
     DELETE_TABLE,
+    UPDATE_TABLE,
     SELECTION,
+    PROJECTION,
+    MODIFY,
+    JOIN,
     SET,
   };
 
@@ -38,12 +43,14 @@ namespace SQLito
     Command();
     ~Command();
 
-    CommandType getType();
-    std::string getTable();
-    std::vector<std::vector<std::string>> getArguments();
+    CommandType getType() const;
+    std::string getTypeString() const;
+    std::string getTable() const;
+    std::vector<std::vector<std::string>> getArguments() const;
 
     void setType(CommandType);
     void setTable(std::string);
     void setArguments(std::vector<std::vector<std::string>>);
+    friend std::ostream &operator<<(std::ostream &os, const Command &command);
   };
 }

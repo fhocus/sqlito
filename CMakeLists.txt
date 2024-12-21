@@ -18,6 +18,7 @@ set(SRC_FILES
     "${SRC_DIR}/Disk.cpp"
     "${SRC_DIR}/DiskManager.cpp"
     "${SRC_DIR}/Command.cpp"
+    "${SRC_DIR}/Schema.cpp"
     "${SRC_DIR}/Parser.cpp"
     "${SRC_DIR}/utils/File.cpp"
     "${SRC_DIR}/sqlito.cpp"

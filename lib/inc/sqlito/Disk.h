@@ -1,6 +1,7 @@
 /**
  * @file Disk.h
  * @author Fabricio Huaquisto <fhuaquisto@unsa.edu.pe>
+ * @author Johan Lizarve <jlizarve@unsa.edu.pe>
  *
  * Copyright (c) 2024 Universidad Nacional de San Agustin (UNSA)
  * https://github.com/fhocus/sqlito
@@ -11,6 +12,7 @@
 
 #pragma once
 
+#include <iostream>
 #include <string>
 
 namespace SQLito
@@ -45,5 +47,7 @@ namespace SQLito
     void setTracks(unsigned int);
     void setSectors(unsigned int);
     void setSectorSize(unsigned int);
+
+    friend std::ostream &operator<<(std::ostream &, const Disk &);
   };
 }

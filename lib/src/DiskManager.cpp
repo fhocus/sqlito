@@ -29,10 +29,10 @@ namespace SQLito
   {
     std::string diskPath = databaseFolder + "/" + diskName;
 
-    if (!Utils::createDirectory(diskPath))
+    if (Utils::createDirectory(diskPath))
       return -1;
 
-    std::ifstream file = Utils::readFile(diskPath + "/info");
+    std::fstream file = Utils::getFile(diskPath + "/info", std::ios::in);
     std::string token;
 
     file >> token;
@@ -53,11 +53,9 @@ namespace SQLito
         _disk->setTracks(std::stoi(token));
       else if (type == "Sectors:")
         _disk->setSectors(std::stoi(token));
-      else if (type == "Sector Size:")
+      else if (type == "SectorSize:")
         _disk->setSectorSize(std::stoi(token));
     }
-
-    std::cout << _disk->getCapacity() << std::endl;
 
     return 1;
   }
@@ -93,12 +91,12 @@ namespace SQLito
         for (unsigned int s = 0; s < sectors; s++)
         {
           std::string pathSector = pathTrack + "/" + std::to_string(s);
-          Utils::createFile(pathSector);
+          Utils::getFile(pathSector, std::ios::out);
         }
       }
     }
 
-    Utils::createFile(diskPath + "/info", getDiskInfo(diskName, disk));
+    Utils::getFile(diskPath + "/info", std::ios::out) << getDiskInfo(diskName, disk);
 
     delete disk;
 
@@ -113,7 +111,7 @@ namespace SQLito
     info += "Platters: " + std::to_string(_disk->getPlatters()) + "\n";
     info += "Tracks: " + std::to_string(_disk->getTracks()) + "\n";
     info += "Sectors: " + std::to_string(_disk->getSectors()) + "\n";
-    info += "Sector Size: " + std::to_string(_disk->getSectorSize()) + "\n";
+    info += "SectorSize: " + std::to_string(_disk->getSectorSize()) + "\n";
     return info;
   }
 
@@ -125,7 +123,7 @@ namespace SQLito
     info += "Platters: " + std::to_string(disk->getPlatters()) + "\n";
     info += "Tracks: " + std::to_string(disk->getTracks()) + "\n";
     info += "Sectors: " + std::to_string(disk->getSectors()) + "\n";
-    info += "Sector Size: " + std::to_string(disk->getSectorSize()) + "\n";
+    info += "SectorSize: " + std::to_string(disk->getSectorSize()) + "\n";
     return info;
   }
 }

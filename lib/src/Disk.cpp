@@ -85,4 +85,17 @@ namespace SQLito
   {
     _sectorSize = sectorSize;
   }
+
+  std::ostream &operator<<(std::ostream &os, const Disk &disk)
+  {
+    os << "Disk (" << "\n";
+    os << "\tCapacity: " << disk.getCapacity() << "\n";
+    os << "\tUsed: " << disk.getUsed() << "\n";
+    os << "\tPlatters: " << disk.getPlatters() << "\n";
+    os << "\tTracks: " << disk.getTracks() << "\n";
+    os << "\tSectors: " << disk.getSectors() << "\n";
+    os << "\tSector Size: " << disk.getSectorSize() << "\n";
+    os << ")";
+    return os;
+  }
 }

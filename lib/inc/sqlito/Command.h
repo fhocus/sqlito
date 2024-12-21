@@ -1,6 +1,7 @@
 /**
  * @file Command.h
  * @author Fabricio Huaquisto <fhuaquisto@unsa.edu.pe>
+ * @author Johan Lizarve <jlizarve@unsa.edu.pe>
  *
  * Copyright (c) 2024 Universidad Nacional de San Agustin (UNSA)
  * https://github.com/fhocus/sqlito
@@ -51,6 +52,7 @@ namespace SQLito
     void setType(CommandType);
     void setTable(std::string);
     void setArguments(std::vector<std::vector<std::string>>);
-    friend std::ostream &operator<<(std::ostream &os, const Command &command);
+
+    friend std::ostream &operator<<(std::ostream &, const Command &);
   };
 }

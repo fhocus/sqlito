@@ -1,6 +1,7 @@
 /**
  * @file Utils/File.h
  * @author Fabricio Huaquisto <fhuaquisto@unsa.edu.pe>
+ * @author Johan Lizarve <jlizarve@unsa.edu.pe>
  *
  * Copyright (c) 2024 Universidad Nacional de San Agustin (UNSA)
  * https://github.com/fhocus/sqlito
@@ -21,8 +22,6 @@ namespace SQLito
   {
     bool createDirectory(std::string);
     bool deleteDirectory(std::string);
-    bool createFile(std::string);
-    bool createFile(std::string, std::string);
-    std::ifstream readFile(std::string);
+    std::fstream getFile(std::string, int);
   }
 }

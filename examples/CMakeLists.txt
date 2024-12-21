@@ -15,3 +15,6 @@ target_link_libraries(updateQuery PRIVATE sqlito)
 
 add_executable(selectQuery selectQuery.cpp)
 target_link_libraries(selectQuery PRIVATE sqlito)
+
+add_executable(testSQLito testSQLito.cpp)
+target_link_libraries(testSQLito PRIVATE sqlito)
